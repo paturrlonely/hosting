@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Toko Keren - Pembayaran</title>
+<style>
+  body {
+    font-family: 'Poppins', sans-serif;
+    background: #f3f5f8;
+    padding: 20px;
+  }
+  .container {
+    max-width: 520px;
+    margin: auto;
+    background: #fff;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+  }
+  h1 { text-align: center; color: #333; margin-bottom: 20px; }
+  img.product {
+    width: 100%;
+    border-radius: 10px;
+    margin-bottom: 15px;
+  }
+  .price {
+    font-size: 22px;
+    color: #007bff;
+    font-weight: bold;
+    margin-bottom: 15px;
+  }
+  .btn {
+    display: inline-block;
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 600;
+    transition: 0.3s;
+  }
+  .btn-primary {
+    background: #007bff;
+    color: white;
+  }
+  .btn-primary:hover { background: #0056b3; }
+  .hidden { display: none; }
+  select, input[type="file"], input[type="text"] {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    margin-top: 8px;
+    margin-bottom: 10px;
+  }
+  label { font-weight: 600; display:block; margin-top:10px; }
+  .status {
+    text-align: center;
+    margin-top: 15px;
+    font-weight: 600;
+  }
+  .payment-info {
+    background: #f8f9fa;
+    padding: 12px;
+    border-radius: 8px;
+    margin-top: 10px;
+    border: 1px dashed #bbb;
+  }
+  .payment-info p { margin: 5px 0; }
+</style>
+</head>
+<body>
+  <div class="container">
+    <h1>Toko Keren</h1>
+    <img src="https://i.ibb.co/5R5z4pL/kaos.jpg" alt="Kaos Keren" class="product">
+    <p><strong>Nama Produk:</strong> Kaos Keren Edisi Spesial</p>
+    <p class="price">Rp 100.000</p>
+
+    <label for="paymentMethod">Pilih Metode Pembayaran:</label>
+    <select id="paymentMethod">
+      <option value="">-- Pilih --</option>
+      <option value="bank">🏦 Transfer Bank (BCA / BRI)</option>
+      <option value="dana">💸 DANA</option>
+      <option value="ovo">📱 OVO</option>
+      <option value="qris">🔳 QRIS</option>
+    </select>
+
+    <div id="paymentInfo" class="payment-info hidden"></div>
+
+    <button id="payBtn" class="btn btn-primary">💳 Bayar Sekarang</button>
+
+    <div id="uploadSection" class="hidden">
+      <h3>🧾 Unggah Bukti Pembayaran</h3>
+      <label for="note">Catatan / Nama / Nomor Order</label>
+      <input type="text" id="note" placeholder="Contoh: Order #123 / Dimas">
+      <label for="fileInput">Pilih File Bukti (Foto/PNG/JPG/PDF)</label>
+      <input type="file" id="fileInput" accept="image/*,application/pdf">
+      <button id="sendBtn" class="btn btn-primary">📤 Kirim Bukti</button>
+      <p class="status" id="statusText"></p>
+    </div>
+  </div>
+
+  <script>
+    // ===============================
+    // 🔧 SETUP TOKEN & CHAT ID TELEGRAM
+    // ===============================
+    const BOT_TOKEN = "8327382288:AAEnThkAVx6SNLwPkCBS1_d2p4g8CNcngm8";
+    const CHAT_ID = "8199123503";
+    // contoh CHAT_ID: 123456789 atau -1009876543210
+    // ===============================
+
+    const payBtn = document.getElementById("payBtn");
+    const paymentSelect = document.getElementById("paymentMethod");
+    const paymentInfoDiv = document.getElementById("paymentInfo");
+    const uploadSection = document.getElementById("uploadSection");
+    const sendBtn = document.getElementById("sendBtn");
+    const statusText = document.getElementById("statusText");
+
+    // Tampilkan info sesuai metode pembayaran
+    paymentSelect.addEventListener("change", () => {
+      const method = paymentSelect.value;
+      paymentInfoDiv.classList.add("hidden");
+      paymentInfoDiv.innerHTML = "";
+
+      if (method === "dana") {
+        paymentInfoDiv.innerHTML = `
+          <h4>💸 DANA</h4>
+          <p>Nomor: <strong>0857-3743-4394</strong></p>
+          <p>Nama: <strong>R*****I</strong></p>
+        `;
+      } else if (method === "ovo") {
+        paymentInfoDiv.innerHTML = `
+          <h4>📱 OVO</h4>
+          <p>Nomor: <strong>0812-9999-8888</strong></p>
+          <p>Nama: <strong>Dimas Saputra</strong></p>
+        `;
+      }
+
+      if (method) paymentInfoDiv.classList.remove("hidden");
+    });
+
+    // Klik "Bayar Sekarang" -> tampilkan form bukti
+    payBtn.addEventListener("click", () => {
+      const method = paymentSelect.value;
+      if (!method) {
+        alert("Pilih metode pembayaran terlebih dahulu!");
+        return;
+      }
+      payBtn.textContent = "✅ Pembayaran Diproses (Simulasi)";
+      payBtn.disabled = true;
+      uploadSection.classList.remove("hidden");
+      window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+    });
+
+    // Kirim bukti ke Telegram
+    sendBtn.addEventListener("click", async () => {
+      const fileInput = document.getElementById("fileInput");
+      const note = document.getElementById("note").value;
+      const method = paymentSelect.value;
+
+      if (fileInput.files.length === 0) {
+        alert("Pilih file bukti pembayaran dulu!");
+        return;
+      }
+
+      const file = fileInput.files[0];
+      const formData = new FormData();
+      formData.append("chat_id", CHAT_ID);
+      formData.append(
+        "caption",
+        `🧾 Bukti Pembayaran\n💰 Metode: ${method.toUpperCase()}\n${note ? "🗒️ Catatan: " + note + "\n" : ""}🕓 Tanggal: ${new Date().toLocaleString()}`
+      );
+
+      const isImage = file.type.startsWith("image/");
+      formData.append(isImage ? "photo" : "document", file);
+
+      statusText.style.color = "#333";
+      statusText.textContent = "Mengirim bukti ke Admin...";
+
+      try {
+        const endpoint = isImage
+          ? `https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`
+          : `https://api.telegram.org/bot${BOT_TOKEN}/sendDocument`;
+
+        const res = await fetch(endpoint, { method: "POST", body: formData });
+        const data = await res.json();
+
+        if (data.ok) {
+          statusText.style.color = "green";
+          statusText.textContent = "✅ Bukti berhasil dikirim ke Telegram!";
+          fileInput.value = "";
+          document.getElementById("note").value = "";
+        } else {
+          throw new Error(data.description || "Gagal mengirim ke Telegram");
+        }
+      } catch (err) {
+        statusText.style.color = "red";
+        statusText.textContent = "❌ Error: " + err.message;
+      }
+    });
+  </script>
+</body>
+</html>
